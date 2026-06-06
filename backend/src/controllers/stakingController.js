@@ -4,15 +4,18 @@ import { MonitoringWallet } from '../models/MonitoringWallet.js';
 import { StakingRequest, STAKING_TERMINAL_STATUSES } from '../models/StakingRequest.js';
 import { Funding } from '../models/Funding.js';
 import { fetchTokenMetadata } from '../services/blockchain/token.js';
+import { getStakingUser } from '../services/blockchain/staking.js';
 import { asyncHandler, badRequest, conflict, notFound } from '../utils/errors.js';
-import { assertAddress } from '../utils/validators.js';
 import { config } from '../config/index.js';
 import { enqueueStakingRequest, enqueueStakingRetry } from '../queues/index.js';
 
+// referrerAddress is optional. By default we read it from the on-chain
+// `users(walletAddress).referrer` record. Pass it explicitly only if you want to
+// override the contract value (rare).
 const createSchema = Joi.object({
   monitoringWalletId: Joi.string().required(),
-  stakingAmount: Joi.string().pattern(/^\d+(\.\d+)?$/).required(), // human-readable
-  referrerAddress: Joi.string().required(),
+  stakingAmount: Joi.string().pattern(/^\d+(\.\d+)?$/).required(),
+  referrerAddress: Joi.string().optional(),
 });
 
 export const listStakingRequests = asyncHandler(async (req, res) => {
@@ -38,7 +41,6 @@ export const getStakingRequest = asyncHandler(async (req, res) => {
 export const createStakingRequest = asyncHandler(async (req, res) => {
   const { value, error } = createSchema.validate(req.body);
   if (error) throw badRequest(error.message);
-  const referrer = assertAddress(value.referrerAddress, 'referrerAddress').toLowerCase();
 
   const wallet = await MonitoringWallet.findById(value.monitoringWalletId);
   if (!wallet) throw notFound('Monitoring wallet not found');
@@ -53,6 +55,33 @@ export const createStakingRequest = asyncHandler(async (req, res) => {
 
   const usdt = config.protocol.usdtAddress.toLowerCase();
   const stakingContract = config.protocol.stakingAddress.toLowerCase();
+
+  // Resolve the referrer. Default: pull from the on-chain users() record.
+  // The wallet must already be registered in the staking contract — this is an
+  // admin tool for existing members only.
+  let referrer;
+  if (value.referrerAddress) {
+    if (!ethers.isAddress(value.referrerAddress)) {
+      throw badRequest('Invalid referrerAddress');
+    }
+    referrer = ethers.getAddress(value.referrerAddress).toLowerCase();
+  } else {
+    let user;
+    try {
+      user = await getStakingUser(wallet.walletAddress, stakingContract);
+    } catch (err) {
+      throw badRequest(`Unable to read staking contract: ${err.message}`);
+    }
+    if (!user.isExist) {
+      throw badRequest(
+        'Wallet is not registered in the staking contract. Register it on-chain first, then retry.'
+      );
+    }
+    if (!user.referrer || user.referrer === ethers.ZeroAddress) {
+      throw badRequest('On-chain referrer is the zero address; cannot proceed.');
+    }
+    referrer = user.referrer.toLowerCase();
+  }
 
   const meta = await fetchTokenMetadata(usdt);
   const decimals = meta.decimals ?? 18;
@@ -105,6 +134,31 @@ export const cancelStakingRequest = asyncHandler(async (req, res) => {
     await wallet.save();
   }
   res.json({ request: request.toObject() });
+});
+
+/**
+ * Read the staking contract's `users(walletAddress)` record for a monitoring wallet.
+ * Used by the UI to pre-fill / confirm the referrer before creating a request.
+ */
+export const getWalletContractInfo = asyncHandler(async (req, res) => {
+  const wallet = await MonitoringWallet.findById(req.params.id).lean();
+  if (!wallet) throw notFound('Monitoring wallet not found');
+  const stakingContract = config.protocol.stakingAddress.toLowerCase();
+  let user;
+  try {
+    user = await getStakingUser(wallet.walletAddress, stakingContract);
+  } catch (err) {
+    return res.json({
+      walletAddress: wallet.walletAddress,
+      stakingContract,
+      error: err.message,
+    });
+  }
+  res.json({
+    walletAddress: wallet.walletAddress,
+    stakingContract,
+    user,
+  });
 });
 
 export const retryStakingRequest = asyncHandler(async (req, res) => {

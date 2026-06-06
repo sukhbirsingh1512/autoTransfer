@@ -16,6 +16,7 @@ const createSchema = Joi.object({
   priority: Joi.number().integer().default(100),
   minimumUsdtBalanceAlert: Joi.string().default('100'),
   minimumBnbBalanceAlert: Joi.string().default('0.01'),
+  gasMode: Joi.string().valid('FIXED', 'ESTIMATED').default('ESTIMATED'),
   notes: Joi.string().allow('').optional(),
 });
 
@@ -25,6 +26,7 @@ const updateSchema = Joi.object({
   priority: Joi.number().integer(),
   minimumUsdtBalanceAlert: Joi.string(),
   minimumBnbBalanceAlert: Joi.string(),
+  gasMode: Joi.string().valid('FIXED', 'ESTIMATED'),
   notes: Joi.string().allow(''),
   status: Joi.string().valid('ACTIVE', 'DISABLED'),
 }).min(1);
@@ -49,6 +51,7 @@ export const createFundingWallet = asyncHandler(async (req, res) => {
     priority: value.priority,
     minimumUsdtBalanceAlert: value.minimumUsdtBalanceAlert,
     minimumBnbBalanceAlert: value.minimumBnbBalanceAlert,
+    gasMode: value.gasMode,
     notes: value.notes || '',
   });
   res.status(201).json({ wallet: doc.toObject() });
@@ -68,6 +71,7 @@ export const updateFundingWallet = asyncHandler(async (req, res) => {
     'priority',
     'minimumUsdtBalanceAlert',
     'minimumBnbBalanceAlert',
+    'gasMode',
     'notes',
     'status',
   ]) {

@@ -11,6 +11,7 @@ const baseSchema = {
   secureReceivingWallet: Joi.string().required(),
   minimumGasBalance: Joi.string().default('0.001'),
   topUpAmount: Joi.string().default('0.002'),
+  gasMode: Joi.string().valid('FIXED', 'ESTIMATED').default('ESTIMATED'),
   notes: Joi.string().allow('').optional(),
 };
 
@@ -21,6 +22,7 @@ const updateSchema = Joi.object({
   secureReceivingWallet: Joi.string(),
   minimumGasBalance: Joi.string(),
   topUpAmount: Joi.string(),
+  gasMode: Joi.string().valid('FIXED', 'ESTIMATED'),
   notes: Joi.string().allow(''),
   status: Joi.string().valid('ACTIVE', 'DISABLED'),
 }).min(1);
@@ -56,6 +58,7 @@ export const createWallet = asyncHandler(async (req, res) => {
     encryptedPrivateKey: encrypt(value.privateKey),
     minimumGasBalance: value.minimumGasBalance,
     topUpAmount: value.topUpAmount,
+    gasMode: value.gasMode,
     notes: value.notes || '',
   });
   res.status(201).json({ wallet: doc.toObject() });
@@ -78,7 +81,7 @@ export const updateWallet = asyncHandler(async (req, res) => {
     }
     wallet.secureReceivingWallet = sr.toLowerCase();
   }
-  for (const k of ['walletName', 'minimumGasBalance', 'topUpAmount', 'notes', 'status']) {
+  for (const k of ['walletName', 'minimumGasBalance', 'topUpAmount', 'gasMode', 'notes', 'status']) {
     if (value[k] !== undefined) wallet[k] = value[k];
   }
   await wallet.save();

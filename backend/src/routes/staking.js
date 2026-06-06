@@ -5,11 +5,13 @@ import {
   createStakingRequest,
   cancelStakingRequest,
   retryStakingRequest,
+  getWalletContractInfo,
 } from '../controllers/stakingController.js';
 import { logAdminAction } from '../middleware/activityLog.js';
 
 const router = Router();
 router.get('/', listStakingRequests);
+router.get('/wallet-info/:id', getWalletContractInfo);
 router.get('/:id', getStakingRequest);
 router.post('/', logAdminAction('staking', 'CREATE_STAKING'), createStakingRequest);
 router.post('/:id/cancel', logAdminAction('staking', 'CANCEL_STAKING'), cancelStakingRequest);

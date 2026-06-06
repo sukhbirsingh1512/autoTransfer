@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import AddressLink from '../components/AddressLink';
+import GasModeField from '../components/GasModeField';
 import { apiDelete, apiGet, apiPost, apiPut } from '../api/client';
 import { formatDate } from '../lib/format';
 
@@ -16,6 +17,7 @@ const EMPTY = {
   secureReceivingWallet: '',
   minimumGasBalance: '0.001',
   topUpAmount: '0.002',
+  gasMode: 'ESTIMATED',
   notes: '',
 };
 
@@ -99,13 +101,14 @@ export default function Wallets() {
               <th className="th">Secure Receiving</th>
               <th className="th">Mode</th>
               <th className="th">Status</th>
+              <th className="th">Gas</th>
               <th className="th">Min/Top-up BNB</th>
               <th className="th">Created</th>
               <th className="th"></th>
             </tr>
           </thead>
           <tbody className="table-zebra">
-            {isLoading && <tr><td className="td text-slate-500" colSpan={8}>Loading…</td></tr>}
+            {isLoading && <tr><td className="td text-slate-500" colSpan={9}>Loading…</td></tr>}
             {(data?.wallets || []).map((w) => (
               <tr key={w._id}>
                 <td className="td">{w.walletName}</td>
@@ -113,6 +116,11 @@ export default function Wallets() {
                 <td className="td"><AddressLink address={w.secureReceivingWallet} /></td>
                 <td className="td"><StatusBadge status={w.walletMode} /></td>
                 <td className="td"><StatusBadge status={w.status} /></td>
+                <td className="td">
+                  <span className={`badge ${w.gasMode === 'ESTIMATED' ? 'badge-info' : 'badge-muted'}`}>
+                    {w.gasMode === 'ESTIMATED' ? 'Estimated' : 'Fixed'}
+                  </span>
+                </td>
                 <td className="td font-mono text-xs">{w.minimumGasBalance} / {w.topUpAmount}</td>
                 <td className="td text-xs text-slate-500">{formatDate(w.createdAt)}</td>
                 <td className="td">
@@ -140,7 +148,7 @@ export default function Wallets() {
               </tr>
             ))}
             {!isLoading && data?.wallets?.length === 0 && (
-              <tr><td className="td text-slate-500" colSpan={8}>No wallets yet</td></tr>
+              <tr><td className="td text-slate-500" colSpan={9}>No wallets yet</td></tr>
             )}
           </tbody>
         </table>
@@ -160,10 +168,16 @@ export default function Wallets() {
             required={!editing}
           />
           <Field label="Secure receiving wallet" value={form.secureReceivingWallet} onChange={(v) => setForm({ ...form, secureReceivingWallet: v })} required />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Minimum BNB balance" value={form.minimumGasBalance} onChange={(v) => setForm({ ...form, minimumGasBalance: v })} />
-            <Field label="Top-up BNB amount" value={form.topUpAmount} onChange={(v) => setForm({ ...form, topUpAmount: v })} />
-          </div>
+          <GasModeField
+            value={form.gasMode}
+            onChange={(v) => setForm({ ...form, gasMode: v })}
+          />
+          {form.gasMode === 'FIXED' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Minimum BNB balance" value={form.minimumGasBalance} onChange={(v) => setForm({ ...form, minimumGasBalance: v })} />
+              <Field label="Top-up BNB amount" value={form.topUpAmount} onChange={(v) => setForm({ ...form, topUpAmount: v })} />
+            </div>
+          )}
           <Field label="Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-ghost" onClick={close}>Cancel</button>

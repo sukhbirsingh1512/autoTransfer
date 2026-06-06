@@ -10,6 +10,8 @@ const masterFundingWalletSchema = new mongoose.Schema(
     priority: { type: Number, default: 100 },
     minimumUsdtBalanceAlert: { type: String, default: '100' },
     minimumBnbBalanceAlert: { type: String, default: '0.01' },
+    // Gas top-up sizing strategy. See MonitoringWallet.gasMode for details.
+    gasMode: { type: String, enum: ['FIXED', 'ESTIMATED'], default: 'ESTIMATED' },
     status: { type: String, enum: ['ACTIVE', 'DISABLED'], default: 'ACTIVE' },
     notes: String,
   },

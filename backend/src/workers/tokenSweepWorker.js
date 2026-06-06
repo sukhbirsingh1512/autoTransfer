@@ -6,7 +6,8 @@ import { Token } from '../models/Token.js';
 import { Transfer } from '../models/Transfer.js';
 import { decrypt } from '../utils/crypto.js';
 import { balanceOf, transferToken } from '../services/blockchain/token.js';
-import { ensureBnbForTx } from '../services/gasTopUpService.js';
+import { estimateTransferGasWei, parseBnb } from '../services/blockchain/gas.js';
+import { ensureBnbForTx, resolveGasMode } from '../services/gasTopUpService.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 
@@ -122,12 +123,46 @@ async function processSweep(job) {
   try {
     transfer.status = 'GAS_TOP_UP_PENDING';
     await transfer.save();
-    const gasResult = await ensureBnbForTx({
+
+    let topUpArgs = {
       wallet,
       walletType: 'MonitoringWallet',
+      mode: 'fixed',
       minBnb: wallet.minimumGasBalance,
       topUpBnb: wallet.topUpAmount,
-    });
+    };
+
+    const effectiveMode = resolveGasMode(wallet, config.workers.gasMode);
+    if (effectiveMode === 'estimated') {
+      try {
+        const requiredWei = await estimateTransferGasWei({
+          from: wallet.walletAddress,
+          contractAddress: token.contractAddress,
+          to: wallet.secureReceivingWallet,
+          rawAmount: sweepRaw,
+          bufferPct: config.workers.gasEstimateBufferPct,
+        });
+        topUpArgs = {
+          wallet,
+          walletType: 'MonitoringWallet',
+          mode: 'estimated',
+          requiredWei,
+          minTopUpWei: parseBnb(config.workers.gasEstimateMinTopUpBnb),
+        };
+        logger.info(
+          { wallet: wallet.walletAddress, requiredWei: requiredWei.toString() },
+          'Sweep gas estimated'
+        );
+      } catch (estErr) {
+        // Fall through to fixed-mode top-up if estimation fails.
+        logger.warn(
+          { err: estErr.message, wallet: wallet.walletAddress },
+          'Gas estimation failed, falling back to fixed top-up'
+        );
+      }
+    }
+
+    const gasResult = await ensureBnbForTx(topUpArgs);
     if (gasResult.txHash) transfer.gasTopUpTxHash = gasResult.txHash;
     transfer.status = 'GAS_READY';
     await transfer.save();

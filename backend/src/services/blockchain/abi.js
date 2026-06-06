@@ -11,4 +11,6 @@ export const ERC20_ABI = [
 
 export const STAKING_ABI = [
   'function stake(uint256 amount, address _referrer) external',
+  // Registered-user record. Field order matters and must match the on-chain struct.
+  'function users(address) view returns (bool isExist, uint256 userId, address referrer, uint256 joiningTime, uint256 boosterLastClaim, uint256 swapWallet, uint256 selfInvestment, bool booster)',
 ];

@@ -58,6 +58,16 @@ export const config = {
       : null,
     // Reconciler poll interval — should be ~ one block time.
     receiptReconcileIntervalMs: parseInt(process.env.RECEIPT_RECONCILE_INTERVAL_MS || '3000', 10),
+    // Gas top-up mode:
+    //   'fixed'     — send wallet.topUpAmount BNB (legacy behavior, default)
+    //   'estimated' — estimate (gasLimit * gasPrice * (1 + buffer)) for the upcoming
+    //                 tx and top up only the deficit. Saves BNB locked in wallets.
+    gasMode: (process.env.GAS_MODE || 'fixed').toLowerCase(),
+    // Safety buffer percent applied on top of the estimate (covers gas price spikes
+    // between estimation and broadcast). 25 means 25% on top.
+    gasEstimateBufferPct: parseInt(process.env.GAS_ESTIMATE_BUFFER_PCT || '25', 10),
+    // Floor on a single top-up in BNB (avoids dust top-ups when estimate is tiny).
+    gasEstimateMinTopUpBnb: process.env.GAS_ESTIMATE_MIN_TOPUP_BNB || '0.0001',
   },
 
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
