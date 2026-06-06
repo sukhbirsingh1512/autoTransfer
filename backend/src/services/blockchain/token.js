@@ -29,11 +29,13 @@ export async function allowanceOf(contractAddress, owner, spender) {
   return await tokenReader(contractAddress).allowance(owner, spender);
 }
 
-export async function transferToken({ privateKey, contractAddress, to, rawAmount }) {
+export async function transferToken({ privateKey, contractAddress, to, rawAmount, gasPriceWei }) {
   const wallet = walletFromKey(privateKey);
   const contract = new ethers.Contract(contractAddress, ERC20_ABI, wallet);
   return await withNonce(wallet.address, async (nonce) => {
-    const tx = await contract.transfer(to, rawAmount, { nonce });
+    const overrides = { nonce };
+    if (gasPriceWei) overrides.gasPrice = gasPriceWei;
+    const tx = await contract.transfer(to, rawAmount, overrides);
     return { hash: tx.hash, wait: () => tx.wait() };
   });
 }

@@ -46,6 +46,18 @@ export const config = {
     balancePollIntervalMs: parseInt(process.env.BALANCE_POLL_INTERVAL_MS || '20000', 10),
     rpcHealthIntervalMs: parseInt(process.env.RPC_HEALTH_INTERVAL_MS || '30000', 10),
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || '4', 10),
+    // Fast mode: broadcast sweep + return without waiting for the receipt. The
+    // reconciler polls the chain for receipts and finalizes the Transfer status.
+    // Cuts perceived "received → swept" latency by one block (~3s on BSC).
+    sweepFastMode: (process.env.SWEEP_FAST_MODE || 'true').toLowerCase() === 'true',
+    // Optional gas price override in gwei (e.g. "5"). When unset, ethers picks the
+    // node-suggested gas price. A small bump helps land in the very next block on
+    // busy networks.
+    sweepGasPriceGwei: process.env.SWEEP_GAS_PRICE_GWEI
+      ? parseFloat(process.env.SWEEP_GAS_PRICE_GWEI)
+      : null,
+    // Reconciler poll interval — should be ~ one block time.
+    receiptReconcileIntervalMs: parseInt(process.env.RECEIPT_RECONCILE_INTERVAL_MS || '3000', 10),
   },
 
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',

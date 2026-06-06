@@ -54,6 +54,20 @@ async function processSweep(job) {
     if (existing) return { skipped: true, reason: 'ALREADY_SWEPT' };
   }
 
+  // In-flight dedup: if another job is currently sweeping the same wallet+token,
+  // skip. Avoids two concurrent jobs racing each other (and racing the gas wallet's
+  // nonce for two simultaneous top-ups).
+  if (!transferId) {
+    const inFlight = await Transfer.findOne({
+      monitoringWalletAddress: wallet.walletAddress,
+      tokenContractAddress: token.contractAddress,
+      status: { $in: ['DETECTED', 'GAS_TOP_UP_PENDING', 'GAS_READY', 'BROADCAST'] },
+    });
+    if (inFlight) {
+      return { skipped: true, reason: 'ALREADY_IN_FLIGHT', existingId: inFlight._id.toString() };
+    }
+  }
+
   // Re-check on-chain balance (don't trust event amount alone)
   const liveBalance = await balanceOf(token.contractAddress, wallet.walletAddress);
   if (liveBalance <= 0n) {
@@ -128,15 +142,26 @@ async function processSweep(job) {
   // Broadcast token transfer
   try {
     const privateKey = decrypt(wallet.encryptedPrivateKey);
+    const gasPriceWei = config.workers.sweepGasPriceGwei
+      ? ethers.parseUnits(String(config.workers.sweepGasPriceGwei), 'gwei')
+      : undefined;
     const { hash, wait } = await transferToken({
       privateKey,
       contractAddress: token.contractAddress,
       to: wallet.secureReceivingWallet,
       rawAmount: sweepRaw,
+      gasPriceWei,
     });
     transfer.outgoingTxHash = hash;
     transfer.status = 'BROADCAST';
     await transfer.save();
+
+    if (config.workers.sweepFastMode) {
+      // Fast path: don't block the worker on the receipt. The reconciler picks up
+      // BROADCAST transfers and updates them to CONFIRMED/FAILED.
+      return { ok: true, txHash: hash, fastMode: true };
+    }
+
     const receipt = await wait();
     transfer.status = receipt.status === 1 ? 'CONFIRMED' : 'FAILED';
     if (transfer.status === 'FAILED') {

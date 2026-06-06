@@ -14,8 +14,11 @@ export const QUEUE_NAMES = {
 };
 
 const defaultJobOptions = {
-  attempts: 5,
-  backoff: { type: 'exponential', delay: 5000 },
+  attempts: 3,
+  // Short, fixed-ish backoff. With the worker's in-flight dedup and the
+  // nonceManager's internal retry, a job that still fails after this is genuinely
+  // failing — don't drag retries out for 20s+.
+  backoff: { type: 'fixed', delay: 1500 },
   removeOnComplete: { age: 7 * 24 * 3600, count: 5000 },
   removeOnFail: { age: 30 * 24 * 3600 },
 };

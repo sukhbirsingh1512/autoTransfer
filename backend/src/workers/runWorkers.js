@@ -5,6 +5,7 @@ import { startStakingWorker } from './stakingWorker.js';
 import { startEventListener } from './eventListener.js';
 import { startBalancePolling } from './balancePollingWorker.js';
 import { startRpcHealthWorker } from './rpcHealthWorker.js';
+import { startReceiptReconciler } from './receiptReconciler.js';
 
 async function main() {
   await connectDb();
@@ -15,6 +16,7 @@ async function main() {
   const eventListener = await startEventListener();
   const polling = startBalancePolling();
   const rpcHealth = startRpcHealthWorker();
+  const reconciler = startReceiptReconciler();
 
   logger.info('All workers running');
 
@@ -26,6 +28,7 @@ async function main() {
       eventListener?.stop?.(),
       polling.stop(),
       rpcHealth.stop(),
+      reconciler.stop(),
     ]);
     process.exit(0);
   };
