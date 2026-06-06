@@ -21,7 +21,7 @@ export default function StakingHistory() {
       <PageHeader
         title="Staking History"
         actions={
-          <select className="input w-56" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+          <select className="input w-full sm:w-56" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="STAKING_SUCCESS">Successful</option>
             <option value="STAKING_FAILED">Failed</option>
             <option value="CANCELLED">Cancelled</option>

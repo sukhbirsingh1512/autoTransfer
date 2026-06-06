@@ -8,10 +8,10 @@ import { formatDate } from '../lib/format';
 
 function Stat({ label, value, sub }) {
   return (
-    <div className="card p-5">
-      <div className="text-xs uppercase tracking-wider text-slate-400">{label}</div>
-      <div className="mt-2 text-2xl font-semibold text-white">{value ?? '—'}</div>
-      {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
+    <div className="card p-4 sm:p-5">
+      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 truncate">{label}</div>
+      <div className="mt-1 sm:mt-2 text-xl sm:text-2xl font-semibold text-white">{value ?? '—'}</div>
+      {sub && <div className="mt-1 text-[11px] sm:text-xs text-slate-500 truncate">{sub}</div>}
     </div>
   );
 }

@@ -34,7 +34,7 @@ export default function Transfers() {
         title="Transfers"
         subtitle="Auto-sweep history"
         actions={
-          <select className="input w-44" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+          <select className="input w-full sm:w-44" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">All statuses</option>
             <option>DETECTED</option>
             <option>GAS_TOP_UP_PENDING</option>

@@ -10,6 +10,7 @@ import {
   History,
   ScrollText,
   Activity,
+  X,
 } from 'lucide-react';
 
 const nav = [
@@ -27,10 +28,17 @@ const nav = [
   { to: '/rpc', label: 'RPC Health', icon: Activity },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose }) {
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-900 bg-slate-950/80 h-screen sticky top-0 flex flex-col">
-      <div className="px-5 py-5 border-b border-slate-900">
+    <aside
+      className={`
+        fixed md:sticky top-0 left-0 z-40 h-screen w-64 shrink-0 flex flex-col
+        border-r border-slate-900 bg-slate-950/95 backdrop-blur
+        transition-transform duration-200 ease-out
+        ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}
+    >
+      <div className="px-5 py-5 border-b border-slate-900 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-brand-600 shadow-glow flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
@@ -40,6 +48,13 @@ export default function Sidebar() {
             <div className="text-[10px] uppercase tracking-wider text-slate-500">Admin · BSC</div>
           </div>
         </div>
+        <button
+          onClick={onClose}
+          className="md:hidden text-slate-400 hover:text-white -mr-1 p-1"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1 text-sm">
         {nav.map(({ to, label, icon: Icon, end }) => (

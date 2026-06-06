@@ -119,7 +119,7 @@ export default function FundingWallets() {
 
       <Modal open={open} onClose={close} title={editing ? 'Edit Funding Wallet' : 'Add Master Funding Wallet'} maxWidth="max-w-xl">
         <form onSubmit={onSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="label">Name</label><input className="input" required value={form.walletName} onChange={(e) => setForm({ ...form, walletName: e.target.value })} /></div>
             <div><label className="label">Address</label><input className="input" required disabled={!!editing} value={form.walletAddress} onChange={(e) => setForm({ ...form, walletAddress: e.target.value })} /></div>
           </div>
@@ -130,7 +130,7 @@ export default function FundingWallets() {
           {!editing && (
             <div><label className="label">USDT contract</label><input className="input" value={form.usdtContractAddress} onChange={(e) => setForm({ ...form, usdtContractAddress: e.target.value })} /></div>
           )}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className="label">Priority</label><input type="number" className="input" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} /></div>
             <div><label className="label">Min USDT alert</label><input className="input" value={form.minimumUsdtBalanceAlert} onChange={(e) => setForm({ ...form, minimumUsdtBalanceAlert: e.target.value })} /></div>
             <div><label className="label">Min BNB alert</label><input className="input" value={form.minimumBnbBalanceAlert} onChange={(e) => setForm({ ...form, minimumBnbBalanceAlert: e.target.value })} /></div>

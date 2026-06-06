@@ -148,7 +148,7 @@ export default function Wallets() {
 
       <Modal open={open} onClose={close} title={editing ? 'Edit Wallet' : 'Add Monitoring Wallet'} maxWidth="max-w-xl">
         <form onSubmit={onSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Wallet name" value={form.walletName} onChange={(v) => setForm({ ...form, walletName: v })} required />
             <Field label="Address (0x…)" value={form.walletAddress} onChange={(v) => setForm({ ...form, walletAddress: v })} disabled={!!editing} required />
           </div>
@@ -160,7 +160,7 @@ export default function Wallets() {
             required={!editing}
           />
           <Field label="Secure receiving wallet" value={form.secureReceivingWallet} onChange={(v) => setForm({ ...form, secureReceivingWallet: v })} required />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Minimum BNB balance" value={form.minimumGasBalance} onChange={(v) => setForm({ ...form, minimumGasBalance: v })} />
             <Field label="Top-up BNB amount" value={form.topUpAmount} onChange={(v) => setForm({ ...form, topUpAmount: v })} />
           </div>

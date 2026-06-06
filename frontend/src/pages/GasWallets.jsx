@@ -111,7 +111,7 @@ export default function GasWallets() {
 
       <Modal open={open} onClose={close} title={editing ? 'Edit Gas Wallet' : 'Add Master Gas Wallet'}>
         <form onSubmit={onSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="label">Name</label><input className="input" required value={form.walletName} onChange={(e) => setForm({ ...form, walletName: e.target.value })} /></div>
             <div><label className="label">Address</label><input className="input" required disabled={!!editing} value={form.walletAddress} onChange={(e) => setForm({ ...form, walletAddress: e.target.value })} /></div>
           </div>
@@ -119,7 +119,7 @@ export default function GasWallets() {
             <label className="label">{editing ? 'Private key (leave blank to keep)' : 'Private key'}</label>
             <input type="password" className="input" required={!editing} value={form.privateKey} onChange={(e) => setForm({ ...form, privateKey: e.target.value })} autoComplete="new-password" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className="label">Priority (lower = first)</label><input type="number" className="input" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} /></div>
             <div><label className="label">Minimum balance alert (BNB)</label><input className="input" value={form.minimumBalanceAlert} onChange={(e) => setForm({ ...form, minimumBalanceAlert: e.target.value })} /></div>
           </div>
