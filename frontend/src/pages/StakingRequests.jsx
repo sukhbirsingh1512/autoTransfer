@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, RefreshCw, X } from 'lucide-react';
+import { Plus, RefreshCw, X, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
@@ -40,7 +40,23 @@ export default function StakingRequests() {
     onError: (e) => toast.error(e?.response?.data?.error || 'Cancel failed'),
   });
 
-  const [form, setForm] = useState({ monitoringWalletId: '', stakingAmount: '', referrerAddress: '' });
+  const [form, setForm] = useState({ monitoringWalletId: '', stakingAmount: '' });
+
+  // Auto-fetch the staking-contract `users(address)` record when the admin picks
+  // a wallet, so we can show the on-chain referrer + registration status inline.
+  const { data: walletInfo, isFetching: infoLoading } = useQuery({
+    queryKey: ['staking-wallet-info', form.monitoringWalletId],
+    queryFn: () => apiGet(`/staking/wallet-info/${form.monitoringWalletId}`),
+    enabled: Boolean(form.monitoringWalletId),
+    staleTime: 30_000,
+  });
+
+  const onChainReferrer = walletInfo?.user?.referrer;
+  const isRegistered = walletInfo?.user?.isExist;
+  const referrerOk =
+    isRegistered &&
+    onChainReferrer &&
+    onChainReferrer.toLowerCase() !== '0x0000000000000000000000000000000000000000';
 
   return (
     <>
@@ -128,22 +144,102 @@ export default function StakingRequests() {
               onChange={(e) => setForm({ ...form, stakingAmount: e.target.value })}
             />
           </div>
-          <div>
-            <label className="label">Referrer address</label>
-            <input
-              className="input"
-              placeholder="0x…"
-              required
-              value={form.referrerAddress}
-              onChange={(e) => setForm({ ...form, referrerAddress: e.target.value })}
-            />
-          </div>
+
+          {/* Auto-fetched contract info: referrer + registration */}
+          <ContractInfoPanel
+            walletSelected={Boolean(form.monitoringWalletId)}
+            loading={infoLoading}
+            info={walletInfo}
+          />
+
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={create.isPending}>Create</button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={create.isPending || !referrerOk}
+              title={!referrerOk ? 'Selected wallet must be registered in the staking contract' : ''}
+            >
+              {create.isPending ? 'Creating…' : 'Create'}
+            </button>
           </div>
         </form>
       </Modal>
     </>
+  );
+}
+
+function ContractInfoPanel({ walletSelected, loading, info }) {
+  if (!walletSelected) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2.5 text-xs text-slate-500">
+        Select a monitoring wallet — the referrer will be read from the staking contract.
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2.5 text-xs text-slate-400 flex items-center gap-2">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading <code className="text-slate-500">users(walletAddress)</code> from contract…
+      </div>
+    );
+  }
+  if (info?.error) {
+    return (
+      <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-300 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+        <div>
+          <div className="font-semibold mb-0.5">Contract read failed</div>
+          <div className="text-rose-200/80 break-all">{info.error}</div>
+        </div>
+      </div>
+    );
+  }
+  const u = info?.user;
+  if (!u?.isExist) {
+    return (
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+        <div>
+          <div className="font-semibold mb-0.5">Not registered</div>
+          <div className="text-amber-200/80">
+            This wallet has no record in the staking contract. Register it on-chain first, then come back.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const zero = '0x0000000000000000000000000000000000000000';
+  const isZeroReferrer = !u.referrer || u.referrer.toLowerCase() === zero;
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-xs">
+      <div className="flex items-center gap-2 text-emerald-300 font-semibold mb-1.5">
+        <CheckCircle2 className="w-4 h-4" /> Registered in staking contract
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-slate-300">
+        <Row label="User ID" value={u.userId} />
+        <Row label="Joining time" value={u.joiningTime ? new Date(u.joiningTime * 1000).toLocaleString() : '—'} />
+        <Row
+          label="Referrer"
+          value={
+            isZeroReferrer ? (
+              <span className="text-rose-300">zero address — cannot proceed</span>
+            ) : (
+              <AddressLink address={u.referrer} />
+            )
+          }
+        />
+        <Row label="Booster" value={u.booster ? 'yes' : 'no'} />
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <span className="text-slate-500 uppercase tracking-wider text-[10px] w-20 shrink-0">{label}</span>
+      <span className="truncate">{value}</span>
+    </div>
   );
 }

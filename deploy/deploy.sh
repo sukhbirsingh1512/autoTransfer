@@ -132,6 +132,15 @@ BALANCE_POLL_INTERVAL_MS=20000
 RPC_HEALTH_INTERVAL_MS=30000
 WORKER_CONCURRENCY=4
 
+# Fast sweep mode
+SWEEP_FAST_MODE=true
+RECEIPT_RECONCILE_INTERVAL_MS=3000
+# Per-wallet gas mode is set on each wallet record from the admin panel; this
+# is the fallback for wallets created before the field existed (legacy).
+GAS_MODE=estimated
+GAS_ESTIMATE_BUFFER_PCT=25
+GAS_ESTIMATE_MIN_TOPUP_BNB=0.00001
+
 CORS_ORIGIN=http://${PUBLIC_HOST}
 EOF
   chmod 600 "$ENV_FILE"

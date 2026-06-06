@@ -22,6 +22,11 @@ const monitoringWalletSchema = new mongoose.Schema(
     monitoringPausedReason: String,
     minimumGasBalance: { type: String, default: '0.001' }, // BNB
     topUpAmount: { type: String, default: '0.002' }, // BNB
+    // Gas top-up sizing strategy for THIS wallet:
+    //   FIXED     — send `topUpAmount` BNB whenever balance falls under minimum.
+    //   ESTIMATED — estimate gasLimit*gasPrice for the upcoming tx and top up only
+    //               the deficit (with a safety buffer). Saves idle BNB.
+    gasMode: { type: String, enum: ['FIXED', 'ESTIMATED'], default: 'ESTIMATED' },
     notes: String,
   },
   { timestamps: true }

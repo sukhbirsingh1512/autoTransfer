@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import AddressLink from '../components/AddressLink';
+import GasModeField from '../components/GasModeField';
 import { apiDelete, apiGet, apiPost, apiPut } from '../api/client';
 import { DEFAULT_USDT } from '../lib/format';
 
@@ -17,6 +18,7 @@ const EMPTY = {
   priority: 100,
   minimumUsdtBalanceAlert: '100',
   minimumBnbBalanceAlert: '0.01',
+  gasMode: 'ESTIMATED',
   notes: '',
 };
 
@@ -82,12 +84,13 @@ export default function FundingWallets() {
               <th className="th">Priority</th>
               <th className="th">USDT</th>
               <th className="th">BNB</th>
+              <th className="th">Gas</th>
               <th className="th">Status</th>
               <th className="th"></th>
             </tr>
           </thead>
           <tbody className="table-zebra">
-            {isLoading && <tr><td className="td text-slate-500" colSpan={7}>Loading…</td></tr>}
+            {isLoading && <tr><td className="td text-slate-500" colSpan={8}>Loading…</td></tr>}
             {(data?.wallets || []).map((w) => {
               const b = balances[w._id];
               return (
@@ -102,6 +105,11 @@ export default function FundingWallets() {
                     </button>
                   </td>
                   <td className="td font-mono text-xs">{b ? Number(b.bnb).toFixed(6) : '—'}</td>
+                  <td className="td">
+                    <span className={`badge ${w.gasMode === 'ESTIMATED' ? 'badge-info' : 'badge-muted'}`}>
+                      {w.gasMode === 'ESTIMATED' ? 'Estimated' : 'Fixed'}
+                    </span>
+                  </td>
                   <td className="td"><StatusBadge status={w.status} /></td>
                   <td className="td">
                     <div className="flex items-center gap-1 justify-end">
@@ -112,7 +120,7 @@ export default function FundingWallets() {
                 </tr>
               );
             })}
-            {!isLoading && data?.wallets?.length === 0 && <tr><td className="td text-slate-500" colSpan={7}>No funding wallets yet</td></tr>}
+            {!isLoading && data?.wallets?.length === 0 && <tr><td className="td text-slate-500" colSpan={8}>No funding wallets yet</td></tr>}
           </tbody>
         </table>
       </div>
@@ -135,6 +143,10 @@ export default function FundingWallets() {
             <div><label className="label">Min USDT alert</label><input className="input" value={form.minimumUsdtBalanceAlert} onChange={(e) => setForm({ ...form, minimumUsdtBalanceAlert: e.target.value })} /></div>
             <div><label className="label">Min BNB alert</label><input className="input" value={form.minimumBnbBalanceAlert} onChange={(e) => setForm({ ...form, minimumBnbBalanceAlert: e.target.value })} /></div>
           </div>
+          <GasModeField
+            value={form.gasMode}
+            onChange={(v) => setForm({ ...form, gasMode: v })}
+          />
           <div><label className="label">Notes</label><input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-ghost" onClick={close}>Cancel</button>

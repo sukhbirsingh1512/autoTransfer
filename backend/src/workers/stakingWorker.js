@@ -6,8 +6,13 @@ import { MasterFundingWallet } from '../models/MasterFundingWallet.js';
 import { Funding } from '../models/Funding.js';
 import { decrypt } from '../utils/crypto.js';
 import { allowanceOf, approveToken, balanceOf, transferToken } from '../services/blockchain/token.js';
+import {
+  estimateTransferGasWei,
+  estimateApproveAndStakeGasWei,
+  parseBnb,
+} from '../services/blockchain/gas.js';
 import { stake } from '../services/blockchain/staking.js';
-import { ensureBnbForTx } from '../services/gasTopUpService.js';
+import { ensureBnbForTx, resolveGasMode } from '../services/gasTopUpService.js';
 import { pickFundingWallet } from '../services/fundingWalletService.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
@@ -60,12 +65,37 @@ async function processStaking(job) {
         const fundingWallet = await MasterFundingWallet.findById(request.masterFundingWalletId).select('+encryptedPrivateKey');
         if (!fundingWallet) throw new Error('Funding wallet missing');
         await setStatus(request, 'FUNDING_WALLET_GAS_TOP_UP_PENDING');
-        const gasResult = await ensureBnbForTx({
+
+        // Estimate the BNB needed to transfer USDT from funding wallet to monitoring wallet.
+        let topUpArgs = {
           wallet: fundingWallet,
           walletType: 'MasterFundingWallet',
+          mode: 'fixed',
           minBnb: fundingWallet.minimumBnbBalanceAlert,
-          topUpBnb: fundingWallet.minimumBnbBalanceAlert, // top up the same amount as min
-        });
+          topUpBnb: fundingWallet.minimumBnbBalanceAlert,
+        };
+        if (resolveGasMode(fundingWallet, config.workers.gasMode) === 'estimated') {
+          try {
+            const requiredWei = await estimateTransferGasWei({
+              from: fundingWallet.walletAddress,
+              contractAddress: request.usdtContractAddress,
+              to: wallet.walletAddress,
+              rawAmount: BigInt(request.stakingAmountRaw),
+              bufferPct: config.workers.gasEstimateBufferPct,
+            });
+            topUpArgs = {
+              wallet: fundingWallet,
+              walletType: 'MasterFundingWallet',
+              mode: 'estimated',
+              requiredWei,
+              minTopUpWei: parseBnb(config.workers.gasEstimateMinTopUpBnb),
+            };
+          } catch (estErr) {
+            logger.warn({ err: estErr.message }, 'Funding-wallet gas estimation failed; using fixed');
+          }
+        }
+
+        const gasResult = await ensureBnbForTx(topUpArgs);
         if (gasResult.txHash) request.fundingWalletGasTopUpTxHash = gasResult.txHash;
         await request.save();
         await setStatus(request, 'TRANSFERRING_USDT_TO_MONITORING_WALLET');
@@ -133,12 +163,37 @@ async function processStaking(job) {
       case 'MONITORING_WALLET_GAS_REQUIRED':
       case 'MONITORING_WALLET_GAS_TOP_UP_PENDING': {
         await setStatus(request, 'MONITORING_WALLET_GAS_TOP_UP_PENDING');
-        const gasResult = await ensureBnbForTx({
+
+        // Monitoring wallet runs both approve() and stake() — estimate the combined gas.
+        let topUpArgs = {
           wallet,
           walletType: 'MonitoringWallet',
+          mode: 'fixed',
           minBnb: wallet.minimumGasBalance,
           topUpBnb: wallet.topUpAmount,
-        });
+        };
+        if (resolveGasMode(wallet, config.workers.gasMode) === 'estimated') {
+          try {
+            const requiredWei = await estimateApproveAndStakeGasWei({
+              from: wallet.walletAddress,
+              usdtContract: request.usdtContractAddress,
+              stakingContract: request.stakingContractAddress,
+              rawAmount: BigInt(request.stakingAmountRaw),
+              bufferPct: config.workers.gasEstimateBufferPct,
+            });
+            topUpArgs = {
+              wallet,
+              walletType: 'MonitoringWallet',
+              mode: 'estimated',
+              requiredWei,
+              minTopUpWei: parseBnb(config.workers.gasEstimateMinTopUpBnb),
+            };
+          } catch (estErr) {
+            logger.warn({ err: estErr.message }, 'Monitoring-wallet gas estimation failed; using fixed');
+          }
+        }
+
+        const gasResult = await ensureBnbForTx(topUpArgs);
         if (gasResult.txHash) request.monitoringWalletGasTopUpTxHash = gasResult.txHash;
         await request.save();
         await setStatus(request, 'APPROVING_ALLOWANCE');
