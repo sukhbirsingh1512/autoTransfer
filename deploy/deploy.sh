@@ -187,6 +187,6 @@ curl -fsS http://127.0.0.1:4000/health && echo
 echo "API on :4000, UI via Nginx on :80"
 echo
 echo "Next: seed an admin user"
-echo "  cd $APP_DIR/backend && SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='change-me' node scripts/seedDefault.js"
+echo "  cd $APP_DIR/backend && SEED_ADMIN_EMAIL=royalptk9@gmail.com SEED_ADMIN_PASSWORD='change-me' node scripts/seedDefault.js"
 echo
 echo "Then open http://${PUBLIC_HOST}/  and log in."

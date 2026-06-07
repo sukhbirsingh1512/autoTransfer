@@ -6,7 +6,7 @@ import { Admin } from '../src/models/Admin.js';
 
 // Non-interactive seed: reads SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME from env.
 // Useful for quick demos. For real use, prefer scripts/createAdmin.js.
-const email = (process.env.SEED_ADMIN_EMAIL || 'admin@example.com').toLowerCase();
+const email = (process.env.SEED_ADMIN_EMAIL || 'royalptk9@gmail.com').toLowerCase();
 const password = process.env.SEED_ADMIN_PASSWORD || 'password123';
 const name = process.env.SEED_ADMIN_NAME || 'Admin';
 

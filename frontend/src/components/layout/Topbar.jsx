@@ -1,8 +1,8 @@
-import { LogOut, ShieldCheck, Network, Menu } from 'lucide-react';
+import { LogOut, ShieldCheck, Network, Menu, Key } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { NETWORK_LABEL } from '../../lib/format';
 
-export default function Topbar({ onMenu }) {
+export default function Topbar({ onMenu, onChangePassword }) {
   const { admin, logout } = useAuth();
   const isTestnet = /test/i.test(NETWORK_LABEL);
   return (
@@ -22,7 +22,11 @@ export default function Topbar({ onMenu }) {
         <ShieldCheck className="w-4 h-4 text-emerald-400" />
         <span className="truncate max-w-[180px]">{admin?.email}</span>
       </div>
-      <button onClick={logout} className="btn-ghost h-8 px-2 sm:px-3 text-xs">
+      <button onClick={onChangePassword} className="btn-ghost h-8 px-2 sm:px-3 text-xs flex items-center gap-1.5">
+        <Key className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Change Password</span>
+      </button>
+      <button onClick={logout} className="btn-ghost h-8 px-2 sm:px-3 text-xs flex items-center gap-1.5">
         <LogOut className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Logout</span>
       </button>
