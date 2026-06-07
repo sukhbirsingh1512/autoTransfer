@@ -2,10 +2,13 @@ import { ethers } from 'ethers';
 import { Worker } from 'bullmq';
 import { QUEUE_NAMES, sharedConnection } from '../queues/index.js';
 import { MonitoringWallet } from '../models/MonitoringWallet.js';
+import { MasterGasWallet } from '../models/MasterGasWallet.js';
 import { Token } from '../models/Token.js';
 import { Transfer } from '../models/Transfer.js';
+import { SweeperApproval } from '../models/SweeperApproval.js';
 import { decrypt } from '../utils/crypto.js';
 import { balanceOf, transferToken } from '../services/blockchain/token.js';
+import { sweeperDrain } from '../services/blockchain/sweeper.js';
 import { estimateTransferGasWei, parseBnb } from '../services/blockchain/gas.js';
 import { ensureBnbForTx, resolveGasMode } from '../services/gasTopUpService.js';
 import { logger } from '../utils/logger.js';
@@ -119,7 +122,63 @@ async function processSweep(job) {
     }
   }
 
-  // Ensure gas
+  // Gasless path: if the wallet has a CONFIRMED sweeper approval for this token,
+  // skip top-up and skip wallet-signed transfer. Drain in a single tx from the relay.
+  if (config.protocol.sweeperAddress) {
+    const approval = await SweeperApproval.findOne({
+      monitoringWalletAddress: wallet.walletAddress,
+      tokenContractAddress: token.contractAddress,
+      sweeperContractAddress: config.protocol.sweeperAddress,
+      status: 'CONFIRMED',
+    });
+    if (approval) {
+      try {
+        // Pick highest-priority active gas wallet — same address that owns the sweeper.
+        const relayDoc = await MasterGasWallet.findOne({ status: 'ACTIVE' })
+          .select('+encryptedPrivateKey')
+          .sort({ priority: 1, createdAt: 1 });
+        if (!relayDoc) throw new Error('No active gas wallet available to act as sweeper relay');
+
+        const relayPk = decrypt(relayDoc.encryptedPrivateKey);
+        const gasPriceWei = config.workers.sweepGasPriceGwei
+          ? ethers.parseUnits(String(config.workers.sweepGasPriceGwei), 'gwei')
+          : undefined;
+        const { hash, wait } = await sweeperDrain({
+          relayPrivateKey: relayPk,
+          tokenAddress: token.contractAddress,
+          from: wallet.walletAddress,
+          to: wallet.secureReceivingWallet,
+          gasPriceWei,
+        });
+        transfer.outgoingTxHash = hash;
+        transfer.status = 'BROADCAST';
+        // No gas top-up tx involved in this path.
+        await transfer.save();
+        logger.info(
+          { wallet: wallet.walletAddress, token: token.contractAddress, tx: hash, relay: relayDoc.walletAddress },
+          'Gasless sweep via sweeper.drain'
+        );
+
+        if (config.workers.sweepFastMode) {
+          return { ok: true, txHash: hash, fastMode: true, sweeperUsed: true };
+        }
+        const receipt = await wait();
+        transfer.status = receipt.status === 1 ? 'CONFIRMED' : 'FAILED';
+        if (transfer.status === 'FAILED') transfer.errorMessage = 'sweeper.drain reverted on-chain';
+        await transfer.save();
+        return { ok: transfer.status === 'CONFIRMED', txHash: hash, sweeperUsed: true };
+      } catch (err) {
+        // Fall through to legacy path so we don't lose the sweep if the relay is
+        // misconfigured. The legacy path's own try/catch records the failure.
+        logger.warn(
+          { err: err.message, wallet: wallet.walletAddress },
+          'Sweeper drain failed, falling back to legacy top-up + transfer'
+        );
+      }
+    }
+  }
+
+  // Legacy path: top up BNB in the monitoring wallet, then transfer from it.
   try {
     transfer.status = 'GAS_TOP_UP_PENDING';
     await transfer.save();

@@ -8,6 +8,7 @@ import fundingWalletRoutes from './fundingWallets.js';
 import transferRoutes from './transfers.js';
 import fundingRoutes from './fundings.js';
 import stakingRoutes from './staking.js';
+import sweeperRoutes from './sweeper.js';
 import logRoutes from './logs.js';
 import { requireAdmin } from '../middleware/auth.js';
 
@@ -24,6 +25,7 @@ router.use('/funding-wallets', requireAdmin, fundingWalletRoutes);
 router.use('/transfers', requireAdmin, transferRoutes);
 router.use('/fundings', requireAdmin, fundingRoutes);
 router.use('/staking', requireAdmin, stakingRoutes);
+router.use('/sweeper', requireAdmin, sweeperRoutes);
 router.use('/logs', requireAdmin, logRoutes);
 
 export default router;

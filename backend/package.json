@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "workers": "node src/workers/runWorkers.js",
     "workers:dev": "nodemon src/workers/runWorkers.js",
-    "seed:admin": "node scripts/createAdmin.js"
+    "seed:admin": "node scripts/createAdmin.js",
+    "sweeper:build": "node scripts/compileSweeper.js",
+    "sweeper:deploy": "node scripts/deploySweeper.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -28,6 +30,7 @@
     "pino-pretty": "^11.2.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "solc": "0.8.26"
   }
 }
