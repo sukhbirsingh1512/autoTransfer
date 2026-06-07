@@ -13,6 +13,7 @@ import Fundings from './pages/Fundings';
 import StakingRequests from './pages/StakingRequests';
 import StakingDetail from './pages/StakingDetail';
 import StakingHistory from './pages/StakingHistory';
+import Sweeper from './pages/Sweeper';
 import Logs from './pages/Logs';
 import RpcHealth from './pages/RpcHealth';
 
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/staking" element={<StakingRequests />} />
         <Route path="/staking/history" element={<StakingHistory />} />
         <Route path="/staking/:id" element={<StakingDetail />} />
+        <Route path="/sweeper" element={<Sweeper />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/rpc" element={<RpcHealth />} />
       </Route>

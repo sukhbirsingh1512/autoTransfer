@@ -10,6 +10,7 @@ import {
   History,
   ScrollText,
   Activity,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ const nav = [
   { to: '/fundings', label: 'Funding History', icon: Banknote },
   { to: '/staking', label: 'Staking Requests', icon: Sparkles },
   { to: '/staking/history', label: 'Staking History', icon: History },
+  { to: '/sweeper', label: 'Sweeper Contract', icon: ShieldCheck },
   { to: '/logs', label: 'Admin Logs', icon: ScrollText },
   { to: '/rpc', label: 'RPC Health', icon: Activity },
 ];

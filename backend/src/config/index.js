@@ -40,6 +40,10 @@ export const config = {
   protocol: {
     usdtAddress: process.env.USDT_BEP20_ADDRESS || '0x55d398326f99059fF775485246999027B3197955',
     stakingAddress: process.env.STAKING_CONTRACT_ADDRESS || '0x73Be7c9CEcB66152f25Aa2e3cb450C61B6Dfc683',
+    // Deployed Sweeper contract (npm run sweeper:deploy prints the address).
+    // When set + a SweeperApproval exists for a wallet/token, the worker calls
+    // sweeper.drain() from the relay wallet instead of the legacy top-up + transfer.
+    sweeperAddress: (process.env.SWEEPER_CONTRACT_ADDRESS || '').toLowerCase(),
   },
 
   workers: {
